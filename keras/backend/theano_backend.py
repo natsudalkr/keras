@@ -810,11 +810,15 @@ def pool2d(x, pool_size, strides=(1, 1), border_mode='valid',
 def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
            dim_ordering='th', pool_mode='max'):
     if border_mode == 'same':
-        # TODO: add implementation for border_mode="same"
-        raise Exception('border_mode="same" not supported with Theano.')
+        # Dimension order: length, width and height
+        l_pad = pool_size[0] - 2 if pool_size[0] % 2 == 1 else pool_size[0] - 1
+        w_pad = pool_size[1] - 2 if pool_size[1] % 2 == 1 else pool_size[1] - 1
+        h_pad = pool_size[2] - 2 if pool_size[2] % 2 == 1 else pool_size[2] - 1
+        padding = [(w_pad, l_pad), (0, h_pad)]
+        ignore_border = True
     elif border_mode == 'valid':
         ignore_border = True
-        padding = (0, 0)
+        padding = [(0, 0), (0, 0)]
     else:
         raise Exception('Invalid border mode: ' + str(border_mode))
 
@@ -830,7 +834,7 @@ def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
                               ds=(pool_size[1], pool_size[0]),
                               st=(strides[1], strides[0]),
                               ignore_border=ignore_border,
-                              padding=padding,
+                              padding=padding[0],
                               mode='max')
 
         # pooling over conv_dim3
@@ -838,7 +842,7 @@ def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
                                 ds=(1, pool_size[2]),
                                 st=(1, strides[2]),
                                 ignore_border=ignore_border,
-                                padding=padding,
+                                padding=padding[1],
                                 mode='max')
 
     elif pool_mode == 'avg':
@@ -847,7 +851,7 @@ def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
                               ds=(pool_size[1], pool_size[0]),
                               st=(strides[1], strides[0]),
                               ignore_border=ignore_border,
-                              padding=padding,
+                              padding=padding[0],
                               mode='average_exc_pad')
 
         # pooling over conv_dim3
@@ -855,7 +859,7 @@ def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
                                 ds=(1, pool_size[2]),
                                 st=(1, strides[2]),
                                 ignore_border=ignore_border,
-                                padding=padding,
+                                padding=padding[1],
                                 mode='average_exc_pad')
     else:
         raise Exception('Invalid pooling mode: ' + str(pool_mode))
