@@ -1,17 +1,18 @@
-'''Fairly basic set of tools for realtime data augmentation on video data.
+""" Fairly basic set of tools for realtime data augmentation on video data.
 It uses all the transformations related to image applied to each frame and
 includes new utilities for video preprocessing.
 Also provides a new generator for video data which can load video data from
 files in parallel while the training is ongoing.
-'''
+"""
 from __future__ import absolute_import
 
 import os
 import re
-from six.moves import range
+
+import numpy as np
 
 import cv2
-import numpy as np
+from six.moves import range
 
 
 def trim(x, start_frame=0, end_frame=None, length=None):
@@ -49,7 +50,7 @@ def trim(x, start_frame=0, end_frame=None, length=None):
     if end_frame < start_frame:
         raise Exception('Invalid ending position')
 
-    x = x[start_frame:end_frame,:,:,:]
+    x = x[start_frame:end_frame, :, :, :]
     if dim_ordering == 'th':
         x = x.transpose(3, 0, 1, 2)
     return x
@@ -65,7 +66,7 @@ def random_trim(x, length):
 
 
 def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
-        length=None, dim_ordering='th'):
+                   length=None, dim_ordering='th'):
     """ Convert the video at the path given in to an array
 
     Args:
@@ -118,7 +119,7 @@ def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         if resize:
             # The resize of CV2 requires pass firts width and then height
-            frame = cv2.resize(frame, (resize[1], resize[0]))
+            frame = cv2.resize(frame, resize)
         frames.append(frame)
 
     video = np.array(frames, dtype=np.float32)
@@ -131,4 +132,4 @@ def list_videos(directory, ext='mp4|avi'):
     """
     return [os.path.join(directory, f) for f in os.listdir(directory)
             if os.path.isfile(os.path.join(directory, f)) and \
-            re.match('([\w]+\.(?:' + ext + '))', f)]
+            re.match(r'([\w]+\.(?:' + ext + '))', f)]
