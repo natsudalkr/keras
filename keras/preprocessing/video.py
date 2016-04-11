@@ -57,12 +57,24 @@ def trim(x, start_frame=0, end_frame=None, length=None):
 
 
 def random_trim(x, length):
+    """ Returns a trim of the video at a random temporal position of the video.
+    The random trim is uniformly distributed along the video length.
+    Args:
+        x (4D array): video array.
+        length (int): Number of frames of length to trim the video.
+    """
     # Supose 'th' dimesion ordering
     total_length = x.shape[1]
     if length >= total_length:
         return x
     start = no.random.randint(total_length-length)
     return trim(x, start_frame=start, length=length)
+
+
+def temporal_flip(x):
+    """ Flip the temporal sequence of the video
+    """
+    return x[..., ::-1, :, :]
 
 
 def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
