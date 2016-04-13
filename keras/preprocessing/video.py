@@ -106,11 +106,11 @@ def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
     if not cap.isOpened():
         raise Exception('Could not open the video')
 
-    num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    num_frames = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
     if start_frame >= num_frames or start_frame < 0:
         raise Exception('Invalid initial frame given')
     # Set up the initial frame to start reading
-    cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+    cap.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, start_frame)
     # Set up until which frame to read
     if end_frame:
         end_frame = end_frame if end_frame < num_frames else num_frames
@@ -131,7 +131,7 @@ def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         if resize:
             # The resize of CV2 requires pass firts width and then height
-            frame = cv2.resize(frame, resize)
+            frame = cv2.resize(frame, (resize[1], resize[0]))
         frames.append(frame)
 
     video = np.array(frames, dtype=np.float32)
