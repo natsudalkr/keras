@@ -11,7 +11,6 @@ import re
 
 import numpy as np
 
-import cv2
 from six.moves import range
 
 
@@ -67,7 +66,7 @@ def random_trim(x, length):
     total_length = x.shape[1]
     if length >= total_length:
         return x
-    start = no.random.randint(total_length-length)
+    start = np.random.randint(total_length-length)
     return trim(x, start_frame=start, length=length)
 
 
@@ -99,6 +98,8 @@ def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
     Raises:
         Exception: If the video could not be opened
     """
+    import cv2
+
     if dim_ordering not in ('th', 'tf'):
         raise Exception('Invalid dim_ordering')
 
@@ -143,5 +144,4 @@ def list_videos(directory, ext='mp4|avi'):
     """ List all videos stored on a directory
     """
     return [os.path.join(directory, f) for f in os.listdir(directory)
-            if os.path.isfile(os.path.join(directory, f)) and \
-            re.match(r'([\w]+\.(?:' + ext + '))', f)]
+            if os.path.isfile(os.path.join(directory, f)) and re.match(r'([\w]+\.(?:' + ext + '))', f)]
