@@ -4,13 +4,15 @@ new preprocessing methods, etc...
 '''
 from __future__ import absolute_import
 
-import numpy as np
-import re
-from scipy import linalg
-import scipy.ndimage as ndi
-from six.moves import range
 import os
+import re
 import threading
+
+import numpy as np
+import scipy.ndimage as ndi
+from scipy import linalg
+
+from six.moves import range
 
 
 def random_rotation(x, rg, row_index=1, col_index=2, channel_index=0,
@@ -70,7 +72,96 @@ def random_zoom(x, zoom_range, row_index=1, col_index=2, channel_index=0,
     h, w = x.shape[row_index], x.shape[col_index]
     transform_matrix = transform_matrix_offset_center(zoom_matrix, h, w)
     x = apply_transform(x, transform_matrix, channel_index, fill_mode, cval)
-    return x
+
+# def random_zoom(x, rg, fill_mode='nearest', cval=0., dim_ordering='th'):
+#     if dim_ordering == 'th':
+#         h_axis, w_axis = -2, -1
+#     elif dim_ordering == 'tf':
+#         h_axis, w_axis = -3, -2
+#     else:
+#         raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
+#     zoom = (1,) * x.ndim
+#     zoom[h_axis] = np.random.uniform(1.-rg, 1.)
+#     zoom[w_axis] = np.random.uniform(1.-rg, 1.)
+#     x = ndimage.interpolation.zoom(x, zoom=zoom,
+#                                    mode=fill_mode,
+#                                    cval=cval)
+#     return x  # shape of result will be different from shape of input!
+
+
+
+# def random_rotation(x, rg, fill_mode='nearest', cval=0., dim_ordering='th'):
+#     ''' Randomly rotate an image.
+#     The input can be weather an image or a video (sequence of frames).
+#     Args:
+#         x (3D/4D array): image or video array.
+#         rg (float): angle range. The rotation will be between [-rg, +rg]
+#         degrees.
+#     '''
+#     angle = np.random.uniform(-rg, rg)
+#     # Supose 'th' dimension ordering. Take the las two dimensions
+#     if dim_ordering == 'th':
+#         axes = tuple(i for i in range(x.ndim-2, x.ndim))
+#     elif dim_ordering == 'tf':
+#         axes = tuple(i for i in range(x.ndim-3, x.ndim-1))
+#     else:
+#         raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
+#     x = ndimage.interpolation.rotate(x, angle,
+#                                      axes=axes,
+#                                      reshape=False,
+#                                      mode=fill_mode,
+#                                      cval=cval)
+#     return x
+#
+#
+# def random_shift(x, wrg, hrg, fill_mode='nearest',
+#                  cval=0., dim_ordering='th'):
+#     if dim_ordering == 'th':
+#         h_axis, w_axis = -2, -1
+#     elif dim_ordering == 'tf':
+#         h_axis, w_axis = -3, -2
+#     else:
+#         raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
+#     shift = (0,) * x.ndim
+#     if wrg:
+#         shift[w_axis] =  np.random.uniform(-wrg, wrg) * x.shape[w_axis]
+#     if hrg:
+#         shift[h_axis] = np.random.uniform(-hrg, hrg) * x.shape[h_axis]
+#     x = ndimage.interpolation.shift(x, shift,
+#                                     order=0,
+#                                     mode=fill_mode,
+#                                     cval=cval)
+#     return x
+#
+#
+# def flip_axis(x, axis):
+#     x = np.asarray(x).swapaxes(axis, 0)
+#     x = x[::-1, ...]
+#     x = x.swapaxes(0, axis)
+#
+#
+# def horizontal_flip(x, dim_ordering='th'):
+#     ''' Horizontally flip x array on the width and hight dimensions.
+#     '''
+#     if dim_ordering == 'th':
+#         x = x[...,::-1]
+#     elif dim_ordering == 'tf':
+#         x = x[...,::-1,:]
+#     else:
+#         raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
+#     return x
+#
+#
+# def vertical_flip(x):
+#     ''' Vertically flip x array on the width and hight dimensions.
+#     '''
+#     if dim_ordering == 'th':
+#         x = x[...,::-1,:]
+#     elif dim_ordering == 'tf':
+#         x = x[...,::-1,:,:]
+#     else:
+#         raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
+#     return x
 
 
 def random_barrel_transform(x, intensity):
@@ -211,6 +302,7 @@ class ImageDataGenerator(object):
                  cval=0.,
                  horizontal_flip=False,
                  vertical_flip=False,
+                 channel_shift=False,
                  dim_ordering='th'):
         self.__dict__.update(locals())
         self.mean = None
@@ -223,14 +315,7 @@ class ImageDataGenerator(object):
                             'column) or "th" (channel before row and column). '
                             'Received arg: ', dim_ordering)
         self.dim_ordering = dim_ordering
-        if dim_ordering == "th":
-            self.channel_index = 1
-            self.row_index = 2
-            self.col_index = 3
-        if dim_ordering == "tf":
-            self.channel_index = 3
-            self.row_index = 1
-            self.col_index = 2
+
 
         if np.isscalar(zoom_range):
             self.zoom_range = [1 - zoom_range, 1 + zoom_range]
