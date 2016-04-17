@@ -16,9 +16,22 @@ from six.moves import range
 import threading
 
 
-def random_rotation(x, rg, fill_mode='nearest',
-                    cval=0., axes=(1, 2)):
+def random_rotation(x, rg, fill_mode='nearest', cval=0., dim_ordering='th'):
+    ''' Randomly rotate an image.
+    The input can be weather an image or a video (sequence of frames).
+    Args:
+        x (3D/4D array): image or video array.
+        rg (float): angle range. The rotation will be between [-rg, +rg]
+        degrees.
+    '''
     angle = np.random.uniform(-rg, rg)
+    # Supose 'th' dimension ordering. Take the las two dimensions
+    if dim_ordering == 'th':
+        axes = tuple(i for i in range(x.ndim-2, x.ndim))
+    elif dim_ordering == 'tf':
+        axes = tuple(i for i in range(x.ndim-3, x.ndim-1))
+    else:
+        raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
     x = ndimage.interpolation.rotate(x, angle,
                                      axes=axes,
                                      reshape=False,
@@ -28,13 +41,19 @@ def random_rotation(x, rg, fill_mode='nearest',
 
 
 def random_shift(x, wrg, hrg, fill_mode='nearest',
-                 cval=0., row_index=1, col_index=2):
-    shift_x = shift_y = 0
+                 cval=0., dim_ordering='th'):
+    if dim_ordering == 'th':
+        h_axis, w_axis = -2, -1
+    elif dim_ordering == 'tf':
+        h_axis, w_axis = -3, -2
+    else:
+        raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
+    shift = (0,) * x.ndim
     if wrg:
-        shift_x = np.random.uniform(-wrg, wrg) * x.shape[col_index]
+        shift[w_axis] =  np.random.uniform(-wrg, wrg) * x.shape[w_axis]
     if hrg:
-        shift_y = np.random.uniform(-hrg, hrg) * x.shape[row_index]
-    x = ndimage.interpolation.shift(x, (0, shift_y, shift_x),
+        shift[h_axis] = np.random.uniform(-hrg, hrg) * x.shape[h_axis]
+    x = ndimage.interpolation.shift(x, shift,
                                     order=0,
                                     mode=fill_mode,
                                     cval=cval)
@@ -45,6 +64,29 @@ def flip_axis(x, axis):
     x = np.asarray(x).swapaxes(axis, 0)
     x = x[::-1, ...]
     x = x.swapaxes(0, axis)
+
+
+def horizontal_flip(x, dim_ordering='th'):
+    ''' Horizontally flip x array on the width and hight dimensions.
+    '''
+    if dim_ordering == 'th':
+        x = x[...,::-1]
+    elif dim_ordering == 'tf':
+        x = x[...,::-1,:]
+    else:
+        raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
+    return x
+
+
+def vertical_flip(x):
+    ''' Vertically flip x array on the width and hight dimensions.
+    '''
+    if dim_ordering == 'th':
+        x = x[...,::-1,:]
+    elif dim_ordering == 'tf':
+        x = x[...,::-1,:,:]
+    else:
+        raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
     return x
 
 
@@ -65,15 +107,28 @@ def random_shear(x, intensity, fill_mode='nearest', cval=0.):
     return x
 
 
-def random_channel_shift(x, rg):
-    # TODO
-    pass
+def random_channel_shift(x, dim_ordering='th'):
+    roll = np.random.randint(3)
+    if dim_ordering == 'th':
+        dim = 0
+    elif dim_ordering == 'tf':
+        dim = x.ndim
+    else:
+        raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
+    return np.roll(x, roll, axis=dim)
 
 
-def random_zoom(x, rg, fill_mode='nearest', cval=0.):
-    zoom_w = np.random.uniform(1.-rg, 1.)
-    zoom_h = np.random.uniform(1.-rg, 1.)
-    x = ndimage.interpolation.zoom(x, zoom=(1., zoom_w, zoom_h),
+def random_zoom(x, rg, fill_mode='nearest', cval=0., dim_ordering='th'):
+    if dim_ordering == 'th':
+        h_axis, w_axis = -2, -1
+    elif dim_ordering == 'tf':
+        h_axis, w_axis = -3, -2
+    else:
+        raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
+    zoom = (1,) * x.ndim
+    zoom[h_axis] = np.random.uniform(1.-rg, 1.)
+    zoom[w_axis] = np.random.uniform(1.-rg, 1.)
+    x = ndimage.interpolation.zoom(x, zoom=zoom,
                                    mode=fill_mode,
                                    cval=cval)
     return x  # shape of result will be different from shape of input!
@@ -151,24 +206,18 @@ class ImageDataGenerator(object):
                  shear_range=0.,
                  horizontal_flip=False,
                  vertical_flip=False,
+                 channel_shift=False,
                  dim_ordering='th'):
         self.__dict__.update(locals())
         self.mean = None
         self.std = None
         self.principal_components = None
         self.lock = threading.Lock()
-        if dim_ordering not in {'tf', 'th'}:
+        if dim_ordering not in ('tf', 'th'):
             raise Exception('dim_ordering should be "tf" (channel after row and \
             column) or "th" (channel before row and column). Received arg: ', dim_ordering)
         self.dim_ordering = dim_ordering
-        if dim_ordering == "th":
-            self.channel_index = 1
-            self.row_index = 2
-            self.col_index = 3
-        if dim_ordering == "tf":
-            self.channel_index = 3
-            self.row_index = 1
-            self.col_index = 2
+
 
     def _flow_index(self, N, batch_size=32, shuffle=False, seed=None):
         b = 0
@@ -258,28 +307,24 @@ class ImageDataGenerator(object):
         return x
 
     def random_transform(self, x):
-        # x is a single image, so it doesn't have image number at index 0
-        img_col_index = self.col_index - 1
-        img_row_index = self.row_index - 1
-
         if self.rotation_range:
-            x = random_rotation(x, self.rotation_range,
-                                axes=(img_row_index, img_col_index))
+            x = random_rotation(x, self.rotation_range, dim_ordering=self.dim_ordering)
         if self.width_shift_range or self.height_shift_range:
             x = random_shift(x, self.width_shift_range, self.height_shift_range,
-                             row_index=img_row_index, col_index=img_col_index)
+                             dim_ordering=self.dim_ordering)
         if self.horizontal_flip:
             if np.random.random() < 0.5:
-                x = flip_axis(x, img_col_index)
+                x = flip_axis(x, dim_ordering=self.dim_ordering)
         if self.vertical_flip:
             if np.random.random() < 0.5:
-                x = flip_axis(x, img_row_index)
+                x = flip_axis(x, dim_ordering=self.dim_ordering)
         if self.shear_range:
             x = random_shear(x, self.shear_range)
+        if self.channel_shift:
+            x = random_channel_shift(x, dim_ordering=self.dim_ordering)
         # TODO:
         # zoom
         # barrel/fisheye
-        # channel shifting
         return x
 
     def fit(self, X,
