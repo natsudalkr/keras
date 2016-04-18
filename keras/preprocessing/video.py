@@ -1,9 +1,9 @@
-""" Fairly basic set of tools for realtime data augmentation on video data.
+''' Fairly basic set of tools for realtime data augmentation on video data.
 It uses all the transformations related to image applied to each frame and
 includes new utilities for video preprocessing.
 Also provides a new generator for video data which can load video data from
 files in parallel while the training is ongoing.
-"""
+'''
 from __future__ import absolute_import
 
 import os
@@ -15,7 +15,7 @@ from six.moves import range
 
 
 def trim(x, start_frame=0, end_frame=None, length=None):
-    """ Trim a video array on its temporal dimension
+    ''' Trim a video array on its temporal dimension
     Args:
         x (4D array): video array. Can be in 'th' or 'tf' dimension
             ordering
@@ -26,7 +26,7 @@ def trim(x, start_frame=0, end_frame=None, length=None):
         length (Optional[int]): Number of frames of length you want to read
             the video from the start_frame. This override the end_frame
             given before.
-    """
+    '''
     if x.shape[0] == 3:
         dim_ordering = 'th'
         x = x.transpose(1, 2, 3, 0)
@@ -56,12 +56,12 @@ def trim(x, start_frame=0, end_frame=None, length=None):
 
 
 def random_trim(x, length):
-    """ Returns a trim of the video at a random temporal position of the video.
+    ''' Returns a trim of the video at a random temporal position of the video.
     The random trim is uniformly distributed along the video length.
     Args:
         x (4D array): video array.
         length (int): Number of frames of length to trim the video.
-    """
+    '''
     # Supose 'th' dimesion ordering
     total_length = x.shape[1]
     if length >= total_length:
@@ -71,8 +71,8 @@ def random_trim(x, length):
 
 
 def temporal_flip(x, dim_ordering='th'):
-    """ Flip the temporal sequence of the video
-    """
+    ''' Flip the temporal sequence of the video
+    '''
     if dim_ordering == 'th':
         return x[..., ::-1, :, :]
     elif dim_ordering == 'tf':
@@ -83,7 +83,7 @@ def temporal_flip(x, dim_ordering='th'):
 
 def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
                    length=None, dim_ordering='th'):
-    """ Convert the video at the path given in to an array
+    ''' Convert the video at the path given in to an array
 
     Args:
         video_path (string): path where the video is stored
@@ -102,8 +102,14 @@ def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
                          (temporal), height, width.
     Raises:
         Exception: If the video could not be opened
-    """
+    '''
     import cv2
+    if cv2.__version__ >= '3.0.0':
+        CAP_PROP_FRAME_COUNT = cv2.CAP_PROP_FRAME_COUNT
+        CAP_PROP_POS_FRAMES = cv2.CAP_PROP_POS_FRAMES
+    else:
+        CAP_PROP_FRAME_COUNT = cv2.cv.CV_CAP_PROP_FRAME_COUNT
+        CAP_PROP_POS_FRAMES = cv2.cv.CV_CAP_PROP_POS_FRAMES
 
     if dim_ordering not in ('th', 'tf'):
         raise Exception('Invalid dim_ordering')
@@ -112,11 +118,11 @@ def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
     if not cap.isOpened():
         raise Exception('Could not open the video')
 
-    num_frames = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
+    num_frames = int(cap.get(CAP_PROP_FRAME_COUNT))
     if start_frame >= num_frames or start_frame < 0:
         raise Exception('Invalid initial frame given')
     # Set up the initial frame to start reading
-    cap.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, start_frame)
+    cap.set(CAP_PROP_POS_FRAMES, start_frame)
     # Set up until which frame to read
     if end_frame:
         end_frame = end_frame if end_frame < num_frames else num_frames
@@ -146,7 +152,7 @@ def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
     return video
 
 def list_videos(directory, ext='mp4|avi'):
-    """ List all videos stored on a directory
-    """
+    ''' List all videos stored on a directory
+    '''
     return [os.path.join(directory, f) for f in os.listdir(directory)
             if os.path.isfile(os.path.join(directory, f)) and re.match(r'([\w]+\.(?:' + ext + '))', f)]
