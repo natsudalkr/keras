@@ -70,10 +70,15 @@ def random_trim(x, length):
     return trim(x, start_frame=start, length=length)
 
 
-def temporal_flip(x):
+def temporal_flip(x, dim_ordering='th'):
     """ Flip the temporal sequence of the video
     """
-    return x[..., ::-1, :, :]
+    if dim_ordering == 'th':
+        return x[..., ::-1, :, :]
+    elif dim_ordering == 'tf':
+        return x[..., ::-1, :, :]
+    else:
+        raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
 
 
 def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,

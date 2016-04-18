@@ -1,7 +1,7 @@
-""" Fairly basic set of tools for realtime data augmentation on image data.
+''' Fairly basic set of tools for realtime data augmentation on image data.
 Can easily be extended to include new transformations,
 new preprocessing methods, etc...
-"""
+'''
 from __future__ import absolute_import
 
 import math
@@ -90,8 +90,8 @@ def vertical_flip(x):
     return x
 
 
-def random_crop(x, size, mode='uniform'):
-    """ Returns a crop from the original image with a new size
+def random_crop(x, size, mode='uniform', dim_ordering='th'):
+    ''' Returns a crop from the original image with a new size
     The crop will be done inside the boundaries of the image (last 2 dimensions)
     and following the distribution from the center will have the given
     probability distribution.
@@ -107,19 +107,27 @@ def random_crop(x, size, mode='uniform'):
     Output:
         x: tensor with the same dimensions than the input but with the last two
             with the given size.
-    """
-    if size[0] > x.shape[-2] or size[1] > x.shape[-1]:
+    '''
+    if dim_ordering == 'th':
+        h_axis, w_axis = -2, -1
+    elif dim_ordering == 'tf':
+        h_axis, w_axis = -3, -2
+    else:
+        raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
+
+    if size[0] > x.shape[h_axis] or size[1] > x.shape[w_axis]:
         raise Exception('Given size is higher than the input shape')
     if mode not in ('uniform',):
         raise Exception('Invalid given mode')
 
     if mode == 'uniform':
-        w_offset = np.random.choice(x.shape[-2]-size[0])
-        h_offset = np.random.choice(x.shape[-1]-size[1])
+        w_offset = np.random.choice(x.shape[h_axis]-size[0])
+        h_offset = np.random.choice(x.shape[w_axis]-size[1])
 
-    return x[..., w_offset:(w_offset+size[0]), h_offset:(h_offset+size[1])]
-
-
+    if dim_ordering == 'th':
+        return x[..., w_offset:(w_offset+size[0]), h_offset:(h_offset+size[1])]
+    else:
+        return x[..., w_offset:(w_offset+size[0]), h_offset:(h_offset+size[1]),:]
 
 
 def random_barrel_transform(x, intensity):
@@ -208,7 +216,7 @@ def list_pictures(directory, ext='jpg|jpeg|bmp|png'):
 
 
 class ImageDataGenerator(object):
-    """Generate minibatches with
+    '''Generate minibatches with
     real-time data augmentation.
 
     # Arguments
@@ -225,7 +233,7 @@ class ImageDataGenerator(object):
         vertical_flip: whether to randomly flip images vertically.
         dim_ordering: 'th' or 'tf'. In 'th' mode, the channels dimension
             (the depth) is at index 1, in 'tf' mode it is at index 3.
-    """
+    '''
     def __init__(self,
                  featurewise_center=True,
                  samplewise_center=False,
@@ -363,7 +371,7 @@ class ImageDataGenerator(object):
             augment=False,
             rounds=1,
             seed=None):
-        """Required for featurewise_center, featurewise_std_normalization
+        '''Required for featurewise_center, featurewise_std_normalization
         and zca_whitening.
 
         # Arguments
@@ -372,7 +380,7 @@ class ImageDataGenerator(object):
             rounds: if `augment`,
                 how many augmentation passes to do over the data
             seed: random seed.
-        """
+        '''
         X = np.copy(X)
         if augment:
             aX = np.zeros(tuple([rounds * X.shape[0]] + list(X.shape)[1:]))
@@ -398,8 +406,8 @@ class ImageDataGenerator(object):
 
 
 class GraphImageDataGenerator(ImageDataGenerator):
-    """Example of how to build a generator for a Graph model
-    """
+    '''Example of how to build a generator for a Graph model
+    '''
 
     def next(self):
         bX, bY = super(GraphImageDataGenerator, self).next()
