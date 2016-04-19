@@ -1,5 +1,6 @@
 import theano
 from theano import tensor as T
+from theano.sandbox.cuda import dnn
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from theano.tensor.signal import pool
 from theano.tensor.nnet import conv3d2d
@@ -952,51 +953,54 @@ def pool3d(x, pool_size, strides=(1, 1, 1), border_mode='valid',
     if dim_ordering == 'tf':
         x = x.dimshuffle((0, 4, 1, 2, 3))
 
-    old_shape = T.cast(x.shape[:-3], 'int64')
-    img_shape = x.shape[-3:]
-    batch_size = prod(x.shape[:-3])
-    batch_size = T.shape_padright(batch_size, 1)
-    new_shape = T.cast(T.join(0, batch_size, img_shape), 'int64')
-    x = T.reshape(x, new_shape, ndim=4)
+    # old_shape = T.cast(x.shape[:-3], 'int64')
+    # img_shape = x.shape[-3:]
+    # batch_size = prod(x.shape[:-3])
+    # batch_size = T.shape_padright(batch_size, 1)
+    # new_shape = T.cast(T.join(0, batch_size, img_shape), 'int64')
+    # x = T.reshape(x, new_shape, ndim=4)
 
     if pool_mode == 'max':
+        pool_out = dnn.dnn_pool(x, pool_size, strides, mode='max', pad=(0, 0, 0))
         # pooling over conv_dim2, conv_dim1 (last two channels)
-        output = pool.pool_2d(input=x.dimshuffle(0, 3, 2, 1),
-                              ds=(pool_size[1], pool_size[0]),
-                              st=(strides[1], strides[0]),
-                              ignore_border=ignore_border,
-                              padding=padding,
-                              mode='max')
-
-        # pooling over conv_dim3
-        pool_out = pool.pool_2d(input=output.dimshuffle(0, 3, 2, 1),
-                                ds=(1, pool_size[2]),
-                                st=(1, strides[2]),
-                                ignore_border=ignore_border,
-                                padding=padding,
-                                mode='max')
+        # output = pool.pool_2d(input=x.dimshuffle(0, 3, 2, 1),
+        #                       ds=(pool_size[1], pool_size[0]),
+        #                       st=(strides[1], strides[0]),
+        #                       ignore_border=ignore_border,
+        #                       padding=padding,
+        #                       mode='max')
+        #
+        # # pooling over conv_dim3
+        # pool_out = pool.pool_2d(input=output.dimshuffle(0, 3, 2, 1),
+        #                         ds=(1, pool_size[2]),
+        #                         st=(1, strides[2]),
+        #                         ignore_border=ignore_border,
+        #                         padding=padding,
+        #                         mode='max')
 
     elif pool_mode == 'avg':
-        # pooling over conv_dim2, conv_dim1 (last two channels)
-        output = pool.pool_2d(input=x.dimshuffle(0, 3, 2, 1),
-                              ds=(pool_size[1], pool_size[0]),
-                              st=(strides[1], strides[0]),
-                              ignore_border=ignore_border,
-                              padding=padding,
-                              mode='average_exc_pad')
+        pool_out = dnn.dnn_pool(x, pool_size, strides, mode='average_exc_pad', pad=(0, 0, 0))
 
-        # pooling over conv_dim3
-        pool_out = pool.pool_2d(input=output.dimshuffle(0, 3, 2, 1),
-                                ds=(1, pool_size[2]),
-                                st=(1, strides[2]),
-                                ignore_border=ignore_border,
-                                padding=padding,
-                                mode='average_exc_pad')
+        # # pooling over conv_dim2, conv_dim1 (last two channels)
+        # output = pool.pool_2d(input=x.dimshuffle(0, 3, 2, 1),
+        #                       ds=(pool_size[1], pool_size[0]),
+        #                       st=(strides[1], strides[0]),
+        #                       ignore_border=ignore_border,
+        #                       padding=padding,
+        #                       mode='average_exc_pad')
+        #
+        # # pooling over conv_dim3
+        # pool_out = pool.pool_2d(input=output.dimshuffle(0, 3, 2, 1),
+        #                         ds=(1, pool_size[2]),
+        #                         st=(1, strides[2]),
+        #                         ignore_border=ignore_border,
+        #                         padding=padding,
+        #                         mode='average_exc_pad')
     else:
         raise Exception('Invalid pooling mode: ' + str(pool_mode))
 
-    output_shape = T.join(0, old_shape, pool_out.shape[-3:])
-    pool_out = T.reshape(pool_out, output_shape, ndim=5)
+    # output_shape = T.join(0, old_shape, pool_out.shape[-3:])
+    # pool_out = T.reshape(pool_out, output_shape, ndim=5)
 
     if dim_ordering == 'tf':
         pool_out = pool_out.dimshuffle((0, 2, 3, 4, 1))
