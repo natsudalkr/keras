@@ -401,7 +401,10 @@ def generator_queue(generator, max_q_size=10,
             try:
                 if q.qsize() < max_q_size:
                     try:
+                        t1 = time.time()
                         generator_output = next(generator)
+                        t2 = time.time()
+                        print('Loaded one batch in {} seconds'.format(t2-t1))
                     except ValueError:
                         continue
                     q.put(generator_output)
