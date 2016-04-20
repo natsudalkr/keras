@@ -5,11 +5,13 @@ import warnings
 import copy
 import time
 import numpy as np
-import threading
-try:
-    import queue
-except ImportError:
-    import Queue as queue
+# import threading
+from multiprocessing import Queue, Process, Event
+import logging
+# try:
+#     import queue
+# except ImportError:
+#     import Queue as queue
 
 from .topology import Container
 from .. import backend as K
@@ -393,10 +395,11 @@ def generator_queue(generator, max_q_size=10,
     '''Builds a threading queue out of a data generator.
     Used in `fit_generator`, `evaluate_generator`, `predict_generator`.
     '''
-    q = queue.Queue()
-    _stop = threading.Event()
+    q = Queue()
+    _stop = Event()
 
     def data_generator_task():
+        logger = logging.getLogger(__name__)
         while not _stop.is_set():
             try:
                 if q.qsize() < max_q_size:
@@ -404,7 +407,7 @@ def generator_queue(generator, max_q_size=10,
                         t1 = time.time()
                         generator_output = next(generator)
                         t2 = time.time()
-                        print('\n{}\tLoaded one batch in {} seconds'.format(t2, t2-t1))
+                        logger.info('\n{}\tLoaded one batch in {} seconds'.format(t2, t2-t1))
                     except ValueError:
                         continue
                     q.put(generator_output)
@@ -414,12 +417,12 @@ def generator_queue(generator, max_q_size=10,
                 _stop.set()
                 raise
 
-    generator_threads = [threading.Thread(target=data_generator_task)
+    generator_threads = [Process(target=data_generator_task)
                          for _ in range(nb_worker)]
 
-    for thread in generator_threads:
-        thread.daemon = True
-        thread.start()
+    for process in generator_threads:
+        process.daemon = True
+        process.start()
 
     return q, _stop
 
