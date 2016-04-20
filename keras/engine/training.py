@@ -6,8 +6,9 @@ import copy
 import time
 import numpy as np
 # import threading
-from multiprocessing import Queue, Process, Event
+import multiprocessing
 import logging
+import sys
 # try:
 #     import queue
 # except ImportError:
@@ -395,19 +396,15 @@ def generator_queue(generator, max_q_size=10,
     '''Builds a threading queue out of a data generator.
     Used in `fit_generator`, `evaluate_generator`, `predict_generator`.
     '''
-    q = Queue()
-    _stop = Event()
-
+    q = multiprocessing.Queue()
+    _stop = multiprocessing.Event()
+    print('Number of cpu seen by python: {}'.format(multiprocessing.cpu_count()))
     def data_generator_task():
-        logger = logging.getLogger(__name__)
         while not _stop.is_set():
             try:
                 if q.qsize() < max_q_size:
                     try:
-                        t1 = time.time()
                         generator_output = next(generator)
-                        t2 = time.time()
-                        logger.info('\n{}\tLoaded one batch in {} seconds'.format(t2, t2-t1))
                     except ValueError:
                         continue
                     q.put(generator_output)
@@ -417,7 +414,7 @@ def generator_queue(generator, max_q_size=10,
                 _stop.set()
                 raise
 
-    generator_threads = [Process(target=data_generator_task)
+    generator_threads = [multiprocessing.Process(target=data_generator_task)
                          for _ in range(nb_worker)]
 
     for process in generator_threads:
@@ -1283,7 +1280,7 @@ class Model(Container):
                                 samples_per_epoch=10000, nb_epoch=10)
         ```
         '''
-        wait_time = 0.01  # in seconds
+        wait_time = 1.  # in seconds
         epoch = 0
 
         do_validation = bool(validation_data)
@@ -1355,6 +1352,8 @@ class Model(Container):
                         break
                     else:
                         time.sleep(wait_time)
+                        print('Waiting')
+                        sys.stdout.flush()
 
                 if not hasattr(generator_output, '__len__'):
                     _stop.set()
