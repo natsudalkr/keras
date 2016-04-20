@@ -404,7 +404,7 @@ def generator_queue(generator, max_q_size=10,
                         t1 = time.time()
                         generator_output = next(generator)
                         t2 = time.time()
-                        print('Loaded one batch in {} seconds'.format(t2-t1))
+                        print('\n{}\tLoaded one batch in {} seconds'.format(t2, t2-t1))
                     except ValueError:
                         continue
                     q.put(generator_output)
@@ -1228,7 +1228,7 @@ class Model(Container):
     def fit_generator(self, generator, samples_per_epoch, nb_epoch,
                       verbose=1, callbacks=[],
                       validation_data=None, nb_val_samples=None,
-                      class_weight={}, max_q_size=10):
+                      class_weight={}, max_q_size=10, nb_worker=1):
         '''Fits the model on data generated batch-by-batch by
         a Python generator.
         The generator is run in parallel to the model, for efficiency.
@@ -1337,7 +1337,7 @@ class Model(Container):
             self.validation_data = None
 
         # start generator thread storing batches into a queue
-        data_gen_queue, _stop = generator_queue(generator, max_q_size=max_q_size)
+        data_gen_queue, _stop = generator_queue(generator, max_q_size=max_q_size, nb_worker=nb_worker)
 
         callback_model.stop_training = False
         while epoch < nb_epoch:
@@ -1433,7 +1433,7 @@ class Model(Container):
         callbacks.on_train_end()
         return self.history
 
-    def evaluate_generator(self, generator, val_samples, max_q_size=10):
+    def evaluate_generator(self, generator, val_samples, max_q_size=10, nb_worker=1):
         '''Evaluates the model on a data generator. The generator should
         return the same kind of data as accepted by `test_on_batch`.
 
@@ -1458,7 +1458,7 @@ class Model(Container):
         wait_time = 0.01
         all_outs = []
         weights = []
-        data_gen_queue, _stop = generator_queue(generator, max_q_size=max_q_size)
+        data_gen_queue, _stop = generator_queue(generator, max_q_size=max_q_size, nb_worker=nb_worker)
 
         while processed_samples < val_samples:
             generator_output = None
@@ -1512,7 +1512,7 @@ class Model(Container):
                                 weights=weights))
             return averages
 
-    def predict_generator(self, generator, val_samples, max_q_size=10):
+    def predict_generator(self, generator, val_samples, max_q_size=10, nb_worker=1):
         '''Generates predictions for the input samples from a data generator.
         The generator should return the same kind of data as accepted by
         `predict_on_batch`.
@@ -1531,7 +1531,7 @@ class Model(Container):
         processed_samples = 0
         wait_time = 0.01
         all_outs = []
-        data_gen_queue, _stop = generator_queue(generator, max_q_size=max_q_size)
+        data_gen_queue, _stop = generator_queue(generator, max_q_size=max_q_size, nb_worker=nb_worker)
 
         while processed_samples < val_samples:
             generator_output = None
