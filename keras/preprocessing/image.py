@@ -28,6 +28,7 @@ def random_rotation(x, rg, row_index=1, col_index=2, channel_index=0,
     return x
 
 
+<<<<<<< caa4f32acd899b934847bfe49dcbe4edc2f8af54
 def random_shift(x, wrg, hrg, row_index=1, col_index=2, channel_index=0,
                  fill_mode='nearest', cval=0.):
     h, w = x.shape[row_index], x.shape[col_index]
@@ -115,22 +116,22 @@ def random_zoom(x, zoom_range, row_index=1, col_index=2, channel_index=0,
 #
 #
 # def random_shift(x, wrg, hrg, fill_mode='nearest',
-#                  cval=0., dim_ordering='th'):
-#     if dim_ordering == 'th':
-#         h_axis, w_axis = -2, -1
-#     elif dim_ordering == 'tf':
-#         h_axis, w_axis = -3, -2
-#     else:
-#         raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
-#     shift = (0,) * x.ndim
-#     if wrg:
-#         shift[w_axis] =  np.random.uniform(-wrg, wrg) * x.shape[w_axis]
-#     if hrg:
-#         shift[h_axis] = np.random.uniform(-hrg, hrg) * x.shape[h_axis]
-#     x = ndimage.interpolation.shift(x, shift,
-#                                     order=0,
-#                                     mode=fill_mode,
-#                                     cval=cval)
+    #              cval=0., dim_ordering='th'):
+    # if dim_ordering == 'th':
+    #     h_axis, w_axis = -2, -1
+    # elif dim_ordering == 'tf':
+    #     h_axis, w_axis = -3, -2
+    # else:
+    #     raise Exception('Unknown dim_ordering: ' + str(dim_ordering))
+    # shift = (0,) * x.ndim
+    # if wrg:
+    #     shift[w_axis] = np.random.uniform(-wrg, wrg) * x.shape[w_axis]
+    # if hrg:
+    #     shift[h_axis] = np.random.uniform(-hrg, hrg) * x.shape[h_axis]
+    # x = ndimage.interpolation.shift(x, shift,
+    #                                 order=0,
+    #                                 mode=fill_mode,
+    #                                 cval=cval)
 #     return x
 #
 #

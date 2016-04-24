@@ -138,9 +138,10 @@ def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
     for i in range(start_frame, end_frame):
         ret, frame = cap.read()
         if cv2.waitKey(1) & 0xFF == ord('q') or not ret:
-            frames.append(np.zeros(resize+(3,)))
-            print('Could not read frame {} of video: {}'.format(i, video_path))
-            continue
+            return None
+            # frames.append(np.zeros(resize+(3,)))
+            # print('Could not read frame {} of video: {}'.format(i, video_path))
+            # continue
 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         if resize:
