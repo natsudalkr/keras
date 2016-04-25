@@ -1,16 +1,20 @@
+import inspect
+
+import numpy as np
+
 import theano
 from theano import tensor as T
 from theano.sandbox.cuda import dnn
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-from theano.tensor.signal import pool
 from theano.tensor.nnet import conv3d2d
+from theano.tensor.signal import pool
+
+from .common import _EPSILON, _FLOATX
+
 try:
     from theano.tensor.nnet.nnet import softsign as T_softsign
 except ImportError:
     from theano.sandbox.softsign import softsign as T_softsign
-import inspect
-import numpy as np
-from .common import _FLOATX, _EPSILON
 
 
 # INTERNAL UTILS
@@ -890,27 +894,29 @@ def conv3d(x, kernel, strides=(1, 1, 1),
                             filter_shape[0], filter_shape[1], filter_shape[2])
 
     if border_mode == 'same':
-        assert(strides == (1, 1, 1))
-        pad_dim1 = (kernel.shape[2] - 1)
-        pad_dim2 = (kernel.shape[3] - 1)
-        pad_dim3 = (kernel.shape[4] - 1)
-        output_shape = (x.shape[0], x.shape[1],
-                        x.shape[2] + pad_dim1,
-                        x.shape[3] + pad_dim2,
-                        x.shape[4] + pad_dim3)
-        output = T.zeros(output_shape)
-        indices = (slice(None), slice(None),
-                   slice(pad_dim1 // 2, x.shape[2] + pad_dim1 // 2),
-                   slice(pad_dim2 // 2, x.shape[3] + pad_dim2 // 2),
-                   slice(pad_dim3 // 2, x.shape[4] + pad_dim3 // 2))
-        x = T.set_subtensor(output[indices], x)
-        border_mode = 'valid'
+        # assert(strides == (1, 1, 1))
+        # pad_dim1 = (kernel.shape[2] - 1)
+        # pad_dim2 = (kernel.shape[3] - 1)
+        # pad_dim3 = (kernel.shape[4] - 1)
+        # output_shape = (x.shape[0], x.shape[1],
+        #                 x.shape[2] + pad_dim1,
+        #                 x.shape[3] + pad_dim2,
+        #                 x.shape[4] + pad_dim3)
+        # output = T.zeros(output_shape)
+        # indices = (slice(None), slice(None),
+        #            slice(pad_dim1 // 2, x.shape[2] + pad_dim1 // 2),
+        #            slice(pad_dim2 // 2, x.shape[3] + pad_dim2 // 2),
+        #            slice(pad_dim3 // 2, x.shape[4] + pad_dim3 // 2))
+        # x = T.set_subtensor(output[indices], x)
+        # border_mode = 'valid'
+        border_mode = tuple(s//2 for s in filter_shape[-3:])
 
-    border_mode_3d = (border_mode, border_mode, border_mode)
-    conv_out = conv3d2d.conv3d(signals=x.dimshuffle(0, 2, 1, 3, 4),
-                               filters=kernel.dimshuffle(0, 2, 1, 3, 4),
-                               border_mode=border_mode_3d)
-    conv_out = conv_out.dimshuffle(0, 2, 1, 3, 4)
+    # border_mode_3d = (border_mode, border_mode, border_mode)
+    # conv_out = conv3d2d.conv3d(signals=x.dimshuffle(0, 2, 1, 3, 4),
+    #                            filters=kernel.dimshuffle(0, 2, 1, 3, 4),
+    #                            border_mode=border_mode_3d)
+    # conv_out = conv_out.dimshuffle(0, 2, 1, 3, 4)
+    conv_out = dnn.dnn_conv3d(x, kernel, border_mode=border_mode)
 
     # support strides by manually slicing the output
     if strides != (1, 1, 1):
