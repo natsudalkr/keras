@@ -143,7 +143,6 @@ def video_to_array(video_path, resize=None, start_frame=0, end_frame=None,
             # print('Could not read frame {} of video: {}'.format(i, video_path))
             # continue
 
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         if resize:
             # The resize of CV2 requires pass firts width and then height
             frame = cv2.resize(frame, (resize[1], resize[0]))
