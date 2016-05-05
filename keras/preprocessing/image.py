@@ -28,7 +28,6 @@ def random_rotation(x, rg, row_index=1, col_index=2, channel_index=0,
     return x
 
 
-<<<<<<< caa4f32acd899b934847bfe49dcbe4edc2f8af54
 def random_shift(x, wrg, hrg, row_index=1, col_index=2, channel_index=0,
                  fill_mode='nearest', cval=0.):
     h, w = x.shape[row_index], x.shape[col_index]
