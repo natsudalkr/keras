@@ -1,25 +1,26 @@
-from __future__ import print_function
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
-import warnings
 import copy
-import time
-import numpy as np
 import threading
+import time
+import warnings
+
+import numpy as np
+from memory_profiler import profile
+
+from .. import backend as K
+from .. import callbacks as cbks
+from .. import metrics as metrics_module
+from .. import objectives, optimizers
+from ..utils.generic_utils import Progbar
+from .topology import Container
+
 try:
     import queue
 except ImportError:
     import Queue as queue
 
-from .topology import Container
-from .. import backend as K
-from .. import optimizers
-from .. import objectives
-from .. import metrics as metrics_module
-from ..utils.generic_utils import Progbar
-from .. import callbacks as cbks
-
-
+@profile
 def standardize_input_data(data, names, shapes=None, check_batch_dim=True,
                            exception_prefix=''):
     '''Users may pass data as a list of arrays, dictionary of arrays,
@@ -245,7 +246,7 @@ def collect_trainable_weights(layer):
         weights += layer.trainable_weights
     return weights
 
-
+@profile
 def batch_shuffle(index_array, batch_size):
     '''This shuffles an array in a batch-wise fashion.
     Useful for shuffling HDF5 arrays
@@ -700,7 +701,7 @@ class Model(Container):
                                                self.outputs,
                                                updates=self.state_updates,
                                                **kwargs)
-
+    @profile
     def _fit_loop(self, f, ins, out_labels=[], batch_size=32,
                   nb_epoch=100, verbose=1, callbacks=[],
                   val_f=None, val_ins=None, shuffle=True,
@@ -908,6 +909,7 @@ class Model(Container):
             return outs[0]
         return outs
 
+    @profile
     def _standardize_user_data(self, x, y,
                                sample_weight=None, class_weight=None,
                                check_batch_dim=True, batch_size=None):
@@ -941,6 +943,7 @@ class Model(Container):
                                 str(x[0].shape[0]) + ' samples')
         return x, y, sample_weights
 
+    @profile
     def fit(self, x, y, batch_size=32, nb_epoch=10, verbose=1, callbacks=[],
             validation_split=0., validation_data=None, shuffle=True,
             class_weight=None, sample_weight=None):
