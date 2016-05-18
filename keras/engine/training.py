@@ -1,23 +1,24 @@
-from __future__ import print_function
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
-import warnings
 import copy
-import time
-import numpy as np
 import threading
+import time
+import warnings
+
+import numpy as np
+
+from .. import backend as K
+from .. import callbacks as cbks
+from .. import metrics as metrics_module
+from .. import objectives, optimizers
+from ..utils.generic_utils import Progbar
+from .topology import Container
+
 try:
     import queue
 except ImportError:
     import Queue as queue
 
-from .topology import Container
-from .. import backend as K
-from .. import optimizers
-from .. import objectives
-from .. import metrics as metrics_module
-from ..utils.generic_utils import Progbar
-from .. import callbacks as cbks
 
 
 def standardize_input_data(data, names, shapes=None, check_batch_dim=True,
@@ -84,9 +85,6 @@ def standardize_input_data(data, names, shapes=None, check_batch_dim=True,
     # check shapes compatibility
     if shapes:
         for i in range(len(names)):
-            if not i and not check_batch_dim:
-                # skip the first axis
-                continue
             array = arrays[i]
             if len(array.shape) != len(shapes[i]):
                 raise Exception('Error when checking ' + exception_prefix +
@@ -94,7 +92,10 @@ def standardize_input_data(data, names, shapes=None, check_batch_dim=True,
                                 ' to have ' + str(len(shapes[i])) +
                                 ' dimensions, but got array with shape ' +
                                 str(array.shape))
-            for dim, ref_dim in zip(array.shape, shapes[i]):
+            for dim, ref_dim, j in zip(array.shape, shapes[i], range(array.ndim)):
+                if not j and not check_batch_dim:
+                    # skip the first axis
+                    continue
                 if ref_dim:
                     if ref_dim != dim:
                         raise Exception('Error when checking ' + exception_prefix +
