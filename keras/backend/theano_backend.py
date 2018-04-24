@@ -4,7 +4,7 @@ import numpy as np
 
 import theano
 from theano import tensor as T
-from theano.gpuarray import dnn
+from theano.sandbox.cuda import dnn
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from theano.tensor.nnet import conv3d2d
 from theano.tensor.signal import pool
